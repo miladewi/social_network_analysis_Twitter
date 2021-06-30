@@ -1,0 +1,66 @@
+import tweepy
+import pandas as pd
+
+#insert api key and token access
+consumer_key = ""
+consumer_secret = ""
+access_token = ""
+access_token_secret = ""
+
+#tweepy authorization/calling the api 
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth, wait_on_rate_limit=True)
+
+def crawling(keyword):
+  #specific tweet
+  search_words = keyword
+  # new_search = search_words + " -filter:retweets" 
+  # date_since = "2021-02-13" #optional: pull tweets since the date xx
+  # date_until = "2021-02-22" #optional: pull tweets until the date xx 
+
+  tweets = tweepy.Cursor(api.search,
+                          q=search_words,
+                          # since=date_since,
+                          # until = date_until,     
+                          tweet_mode='extended', 
+                          lang='id'               
+                          ).items(1000)             
+
+  username = []
+  folcount = []
+  frcount = []
+  items = []
+  mentions = []
+  # retweet = []
+
+  for tweet in tweets:
+    if hasattr(tweet, "entities"):
+      entities = tweet.entities
+      if "user_mentions" in entities:
+        for ent in entities["user_mentions"]:
+          if ent is not None:
+            if "screen_name" in ent:
+              screen_name = ent["screen_name"]
+              if screen_name is not None:
+                mentions.append(screen_name)
+                username.append(tweet.user.screen_name)
+                items.append(tweet.full_text.encode('utf-8'))
+                folcount.append(tweet.user.followers_count)
+                frcount.append(tweet.user.friends_count)
+                # retweet.append(tweet.retweet_count)
+  
+  hasil = pd.DataFrame(list(zip(username, folcount, frcount, items, mentions)),
+                    columns=['Username From', 'folcount', 'frcount','Tweet','Mention'])
+
+  return hasil
+
+df = crawling('#VaksinUntukIndonesia')
+# df = crawling('#VaksinasiNasional')
+# df = crawling('#VaksinUntukKita')
+# df = crawling('#VaksinDorongPemulihanRI')
+# df = crawling('#VaksinPulihkanNegeri ')
+
+# df
+import csv
+df.to_csv(r'crawling vaksin.csv', index=False, sep=";")
